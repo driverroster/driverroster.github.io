@@ -48,9 +48,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 rawDate: rawDate,
                 displayDate: formatDateNZ(rawDate)
             };
-        }).filter(entry =>
-            Object.values(entry).some(val => val && val !== "0")
-        );
+        }).filter(entry => {
+            const hasStart = entry.start && entry.start !== "0";
+            const hasOtherInfo = [entry.truck, entry.driver, entry.run, entry.off]
+                .some(val => val && val !== "0");
+            return hasStart && hasOtherInfo;
+        });
 
         const uniqueDates = [...new Set(shiftData.map(entry => entry.rawDate))];
 
@@ -117,11 +120,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         thead.innerHTML = `<tr>
-            <th>Truck</th>
-            <th>Start</th>
-            <th>Driver</th>
-            <th>Run</th>
-            <th>Off</th>
+            <th class="col-truck">Truck</th>
+            <th class="col-start">Start</th>
+            <th class="col-driver">Driver</th>
+            <th class="col-run">Run</th>
+            <th class="col-off">Off</th>
         </tr>`;
         thead.style.position = "sticky";
         thead.style.top = "0";
@@ -132,11 +135,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const tbody = document.createElement("tbody");
         data.forEach(entry => {
             const row = document.createElement("tr");
-            row.innerHTML = `<td>${showBlankIfZero(entry.truck)}</td>
-                             <td>${showBlankIfZero(entry.start)}</td>
-                             <td>${showBlankIfZero(entry.driver)}</td>
-                             <td>${showBlankIfZero(entry.run)}</td>
-                             <td>${showBlankIfZero(entry.off)}</td>`;
+            row.innerHTML = `
+                <td class="col-truck">${showBlankIfZero(entry.truck)}</td>
+                <td class="col-start">${showBlankIfZero(entry.start)}</td>
+                <td class="col-driver">${showBlankIfZero(entry.driver)}</td>
+                <td class="col-run">${showBlankIfZero(entry.run)}</td>
+                <td class="col-off">${showBlankIfZero(entry.off)}</td>`;
             tbody.appendChild(row);
         });
 

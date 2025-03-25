@@ -157,6 +157,21 @@ select:hover, select:focus {
     justify-content: center;
 }
 
+/* Auto-size small columns just to fit text */
+.col-truck,
+.col-start,
+.col-driver,
+.col-off {
+    white-space: nowrap;
+    width: 1%;
+}
+
+/* Let Run column expand naturally */
+.col-run {
+    width: auto;
+}
+
+
 /* Table Styling */
 table {
     width: 100%;
