@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const dateSelect = document.getElementById("date-select");
     const scheduleContainer = document.getElementById("schedule-container");
     const darkModeToggle = document.getElementById("dark-mode-toggle");
 
@@ -8,9 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("📦 Fetching CSV file: shifts.csv...");
     fetch("shifts.csv")
         .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             return response.text();
         })
         .then(csvText => {
@@ -26,7 +23,6 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         const headers = rows[0].map(h => h.trim());
-
         const colIndex = {
             date: headers.indexOf("Date"),
             unit: headers.indexOf("Truck"),
@@ -36,9 +32,6 @@ document.addEventListener("DOMContentLoaded", function () {
             shift: headers.indexOf("Shift"),
             start: headers.indexOf("Start")
         };
-
-        console.log("🔍 Parsed headers:", headers);
-        console.log("📌 Column indexes:", colIndex);
 
         if (Object.values(colIndex).some(index => index === -1)) {
             console.error("❗ One or more required columns are missing.");
@@ -58,48 +51,12 @@ document.addEventListener("DOMContentLoaded", function () {
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        console.log("📋 Parsed shift entries:", shiftData.length);
+        console.log("📋 Total entries to show:", shiftData.length);
         if (shiftData.length > 0) {
             console.log("🧪 First entry:", shiftData[0]);
         }
 
-        const uniqueDates = [...new Set(shiftData.map(entry => entry.date))].sort();
-        console.log("📅 Unique dates:", uniqueDates);
-
-        uniqueDates.forEach(date => {
-            let option = document.createElement("option");
-            option.value = date;
-            option.textContent = date;
-            dateSelect.appendChild(option);
-        });
-
-        if (uniqueDates.length > 0) {
-            updateSchedule(uniqueDates[0]);
-        } else {
-            console.warn("⚠️ No valid dates found.");
-        }
-    }
-
-    function updateSchedule(selectedDate) {
-        console.log(`📆 Rendering schedule for: ${selectedDate}`);
-        scheduleContainer.innerHTML = "";
-
-        const dayShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Day");
-        const nightShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Night");
-
-        console.log("🌞 Day shift count:", dayShift.length);
-        console.log("🌙 Night shift count:", nightShift.length);
-
-        if (dayShift.length > 0) {
-            scheduleContainer.appendChild(createTable("Day Shift", dayShift));
-        }
-        if (nightShift.length > 0) {
-            scheduleContainer.appendChild(createTable("Night Shift", nightShift));
-        }
-
-        if (dayShift.length === 0 && nightShift.length === 0) {
-            scheduleContainer.innerHTML = "<p>No shift data for selected date.</p>";
-        }
+        scheduleContainer.appendChild(createTable("Full Roster", shiftData));
     }
 
     function showBlankIfZero(value) {
@@ -110,6 +67,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         thead.innerHTML = `<tr>
+            <th>Date</th>
+            <th>Shift</th>
             <th>Truck</th>
             <th>Start</th>
             <th>Driver</th>
@@ -125,7 +84,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const tbody = document.createElement("tbody");
         data.forEach(entry => {
             const row = document.createElement("tr");
-            row.innerHTML = `<td>${showBlankIfZero(entry.truck)}</td>
+            row.innerHTML = `<td>${showBlankIfZero(entry.date)}</td>
+                             <td>${showBlankIfZero(entry.shift)}</td>
+                             <td>${showBlankIfZero(entry.truck)}</td>
                              <td>${showBlankIfZero(entry.start)}</td>
                              <td>${showBlankIfZero(entry.driver)}</td>
                              <td>${showBlankIfZero(entry.run)}</td>
@@ -140,10 +101,6 @@ document.addEventListener("DOMContentLoaded", function () {
         section.appendChild(table);
         return section;
     }
-
-    dateSelect.addEventListener("change", () => {
-        updateSchedule(dateSelect.value);
-    });
 
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
