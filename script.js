@@ -51,12 +51,20 @@ document.addEventListener("DOMContentLoaded", function () {
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        console.log("📋 Total entries to show:", shiftData.length);
+        console.log("📋 Total valid shift entries:", shiftData.length);
         if (shiftData.length > 0) {
             console.log("🧪 First entry:", shiftData[0]);
         }
 
-        scheduleContainer.appendChild(createTable("Full Roster", shiftData));
+        const dayShift = shiftData.filter(entry => entry.shift === "Day");
+        const nightShift = shiftData.filter(entry => entry.shift === "Night");
+
+        if (dayShift.length > 0) {
+            scheduleContainer.appendChild(createTable("Day Shift", dayShift));
+        }
+        if (nightShift.length > 0) {
+            scheduleContainer.appendChild(createTable("Night Shift", nightShift));
+        }
     }
 
     function showBlankIfZero(value) {
@@ -68,7 +76,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const thead = document.createElement("thead");
         thead.innerHTML = `<tr>
             <th>Date</th>
-            <th>Shift</th>
             <th>Truck</th>
             <th>Start</th>
             <th>Driver</th>
@@ -85,7 +92,6 @@ document.addEventListener("DOMContentLoaded", function () {
         data.forEach(entry => {
             const row = document.createElement("tr");
             row.innerHTML = `<td>${showBlankIfZero(entry.date)}</td>
-                             <td>${showBlankIfZero(entry.shift)}</td>
                              <td>${showBlankIfZero(entry.truck)}</td>
                              <td>${showBlankIfZero(entry.start)}</td>
                              <td>${showBlankIfZero(entry.driver)}</td>
@@ -102,6 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return section;
     }
 
+    // Dark mode toggle
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
