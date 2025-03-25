@@ -49,26 +49,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 off: row[colIndex.off]?.trim(),
                 shift: row[colIndex.shift]?.trim(),
                 date: formatToNZDate(rawDate),
-                rawDate: new Date(rawDate) // used for sorting
+                rawDate: new Date(rawDate) // for sorting
             };
         }).filter(entry =>
             entry.driver && entry.driver !== "0" &&
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        // Sort shift data by rawDate
+        // Sort all shift data by date
         shiftData.sort((a, b) => a.rawDate - b.rawDate);
 
+        // Populate the date dropdown
         const uniqueDates = [...new Set(shiftData.map(entry => entry.date))];
         uniqueDates.forEach(date => {
-            let option = document.createElement("option");
+            const option = document.createElement("option");
             option.value = date;
             option.textContent = date;
             dateSelect.appendChild(option);
         });
 
         if (uniqueDates.length > 0) {
-            updateSchedule(uniqueDates[0]); // Default to first date
+            updateSchedule(uniqueDates[0]); // default to first date
         }
 
         dateSelect.addEventListener("change", () => {
@@ -118,6 +119,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function createTable(title, data) {
+        // Sort by truck number ascending
+        data.sort((a, b) => {
+            const truckA = parseInt(a.truck) || 0;
+            const truckB = parseInt(b.truck) || 0;
+            return truckA - truckB;
+        });
+
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         thead.innerHTML = `<tr>
@@ -152,6 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return section;
     }
 
+    // Dark Mode
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
