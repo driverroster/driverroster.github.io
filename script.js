@@ -102,6 +102,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    function showBlankIfZero(value) {
+        return value === "0" ? "" : value;
+    }
+
     function createTable(title, data) {
         const table = document.createElement("table");
         const thead = document.createElement("thead");
@@ -121,11 +125,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const tbody = document.createElement("tbody");
         data.forEach(entry => {
             const row = document.createElement("tr");
-            row.innerHTML = `<td>${entry.truck}</td>
-                             <td>${entry.start}</td>
-                             <td>${entry.driver}</td>
-                             <td>${entry.run}</td>
-                             <td>${entry.off}</td>`;
+            row.innerHTML = `<td>${showBlankIfZero(entry.truck)}</td>
+                             <td>${showBlankIfZero(entry.start)}</td>
+                             <td>${showBlankIfZero(entry.driver)}</td>
+                             <td>${showBlankIfZero(entry.run)}</td>
+                             <td>${showBlankIfZero(entry.off)}</td>`;
             tbody.appendChild(row);
         });
 
@@ -141,7 +145,6 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSchedule(dateSelect.value);
     });
 
-    // Dark Mode Toggle
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
