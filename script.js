@@ -48,17 +48,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 off: row[colIndex.off]?.trim(),
                 shift: row[colIndex.shift]?.trim(),
                 date: formatToNZDate(rawDate),
-                rawDate: new Date(rawDate) // for sorting
+                rawDate: new Date(rawDate)
             };
         }).filter(entry =>
-            // Keep all rows with at least one meaningful value
+            // Show any row with at least one meaningful (non-zero/non-empty) value
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        // Sort by date
         shiftData.sort((a, b) => a.rawDate - b.rawDate);
 
-        // Populate the dropdown
         const uniqueDates = [...new Set(shiftData.map(entry => entry.date))];
         uniqueDates.forEach(date => {
             const option = document.createElement("option");
@@ -68,7 +66,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         if (uniqueDates.length > 0) {
-            updateSchedule(uniqueDates[0]); // Show first date by default
+            updateSchedule(uniqueDates[0]);
         }
 
         dateSelect.addEventListener("change", () => {
@@ -101,8 +99,8 @@ document.addEventListener("DOMContentLoaded", function () {
     function formatToNZDate(dateString) {
         if (!dateString) return "";
         const parts = dateString.includes("-")
-            ? dateString.split("-") // e.g. 2025-03-25
-            : dateString.split("/"); // e.g. 3/25/2025
+            ? dateString.split("-")
+            : dateString.split("/");
 
         let day, month, year;
         if (parts.length === 3) {
@@ -114,11 +112,10 @@ document.addEventListener("DOMContentLoaded", function () {
             return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
         }
 
-        return dateString; // fallback
+        return dateString;
     }
 
     function createTable(title, data) {
-        // Sort by truck number
         data.sort((a, b) => {
             const truckA = parseInt(a.truck) || 0;
             const truckB = parseInt(b.truck) || 0;
@@ -159,7 +156,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return section;
     }
 
-    // Dark Mode toggle
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
