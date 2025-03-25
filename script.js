@@ -92,25 +92,37 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function normalizeToISODate(input) {
-        if (!input) return "";
-        const parts = input.includes("-") ? input.split("-") : input.split("/");
+	function normalizeToISODate(input) {
+	    if (!input) return "";
+	
+	    const parts = input.includes("-") ? input.split("-") : input.split("/");
+	
+	    if (parts.length !== 3) return "";
+	
+	    let day, month, year;
+	
+	    if (input.includes("-")) {
+	        // Assume YYYY-MM-DD
+	        [year, month, day] = parts;
+	    } else {
+	        // Try MM/DD/YYYY vs DD/MM/YYYY by checking year part
+	        if (parseInt(parts[2]) > 31) {
+	            [month, day, year] = parts;
+	        } else {
+	            [day, month, year] = parts;
+	        }
+	    }
+	
+	    if (!day || !month || !year) return "";
+	
+	    // Check if valid
+	    const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+	    const testDate = new Date(iso);
+	    if (isNaN(testDate)) return "";
+	
+	    return iso;
+	}
 
-        let day, month, year;
-        if (parts.length !== 3) return "";
-
-        if (input.includes("-")) {
-            [year, month, day] = parts;
-        } else {
-            if (parseInt(parts[2]) > 31) {
-                [month, day, year] = parts;
-            } else {
-                [day, month, year] = parts;
-            }
-        }
-
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    }
 
     function formatToNZDate(isoDate) {
         const date = new Date(isoDate);
