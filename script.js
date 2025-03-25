@@ -14,8 +14,8 @@ document.addEventListener("DOMContentLoaded", function () {
             return response.text();
         })
         .then(csvText => {
-            console.log("✅ CSV file loaded successfully.");
-            console.log("📄 Raw CSV preview:", csvText.split("\n").slice(0, 5).join("\n"));
+            console.log("✅ CSV loaded successfully.");
+            console.log("📄 CSV preview:", csvText.split("\n").slice(0, 5).join("\n"));
             processCSV(csvText);
         })
         .catch(error => console.error("❌ Failed to load CSV:", error));
@@ -25,51 +25,46 @@ document.addEventListener("DOMContentLoaded", function () {
             row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
         );
 
-        console.log("🧾 Total rows (including header):", rows.length);
-
         const headers = rows[0].map(h => h.trim());
-        console.log("🔍 Parsed headers:", headers);
 
         const colIndex = {
             date: headers.indexOf("Date"),
             unit: headers.indexOf("Truck"),
-            driver: headers.indexOf("Driver"), // assumes you've stripped trailing space
+            driver: headers.indexOf("Driver"),
             run: headers.indexOf("Run"),
             off: headers.indexOf("Off"),
             shift: headers.indexOf("Shift"),
             start: headers.indexOf("Start")
         };
 
+        console.log("🔍 Parsed headers:", headers);
         console.log("📌 Column indexes:", colIndex);
 
         if (Object.values(colIndex).some(index => index === -1)) {
-            console.error("❗ One or more required columns are missing in the CSV header.");
+            console.error("❗ One or more required columns are missing.");
             return;
         }
 
-        shiftData = rows.slice(1).map((row, i) => {
-            const entry = {
-                truck: row[colIndex.unit]?.trim(),
-                start: row[colIndex.start]?.trim(),
-                driver: row[colIndex.driver]?.trim().split(" ")[0],
-                run: row[colIndex.run]?.trim().replace(/^"|"$/g, "").replace(/,/g, " - "),
-                off: row[colIndex.off]?.trim().split(" ")[0],
-                shift: row[colIndex.shift]?.trim(),
-                date: row[colIndex.date]?.trim()
-            };
-            return entry;
-        }).filter(entry =>
+        shiftData = rows.slice(1).map(row => ({
+            truck: row[colIndex.unit]?.trim(),
+            start: row[colIndex.start]?.trim(),
+            driver: row[colIndex.driver]?.trim(),
+            run: row[colIndex.run]?.trim(),
+            off: row[colIndex.off]?.trim(),
+            shift: row[colIndex.shift]?.trim(),
+            date: row[colIndex.date]?.trim()
+        })).filter(entry =>
             entry.driver && entry.driver !== "0" &&
             Object.values(entry).some(val => val && val !== "0")
         );
 
         console.log("📋 Parsed shift entries:", shiftData.length);
         if (shiftData.length > 0) {
-            console.log("🔎 Sample entry:", shiftData[0]);
+            console.log("🧪 First entry:", shiftData[0]);
         }
 
         const uniqueDates = [...new Set(shiftData.map(entry => entry.date))].sort();
-        console.log("📅 Unique dates found:", uniqueDates);
+        console.log("📅 Unique dates:", uniqueDates);
 
         uniqueDates.forEach(date => {
             let option = document.createElement("option");
@@ -81,19 +76,19 @@ document.addEventListener("DOMContentLoaded", function () {
         if (uniqueDates.length > 0) {
             updateSchedule(uniqueDates[0]);
         } else {
-            console.warn("⚠️ No valid dates found in the CSV.");
+            console.warn("⚠️ No valid dates found.");
         }
     }
 
     function updateSchedule(selectedDate) {
-        console.log(`📆 Updating schedule for: ${selectedDate}`);
+        console.log(`📆 Rendering schedule for: ${selectedDate}`);
         scheduleContainer.innerHTML = "";
 
         const dayShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Day");
         const nightShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Night");
 
-        console.log("🌞 Day Shift count:", dayShift.length);
-        console.log("🌙 Night Shift count:", nightShift.length);
+        console.log("🌞 Day shift count:", dayShift.length);
+        console.log("🌙 Night shift count:", nightShift.length);
 
         if (dayShift.length > 0) {
             scheduleContainer.appendChild(createTable("Day Shift", dayShift));
@@ -146,6 +141,7 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSchedule(dateSelect.value);
     });
 
+    // Dark Mode Toggle
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
