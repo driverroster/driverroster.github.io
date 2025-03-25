@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let shiftData = [];
 
-    // Fetch CSV
     fetch("shifts.csv")
         .then(response => response.text())
         .then(csvText => processCSV(csvText))
@@ -16,18 +15,28 @@ document.addEventListener("DOMContentLoaded", function () {
             row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
         );
 
+        // Strip whitespace from headers
         const headers = rows[0].map(h => h.trim());
 
         const colIndex = {
             date: headers.indexOf("Date"),
             unit: headers.indexOf("Truck"),
-            driver: headers.indexOf("Driver "), // matches your CSV with trailing space
+            driver: headers.indexOf("Driver"), // stripped version, no trailing space
             run: headers.indexOf("Run"),
             off: headers.indexOf("Off"),
             shift: headers.indexOf("Shift"),
-            destination: -1, // Not present in this CSV
             start: headers.indexOf("Start")
         };
+
+        // Log header mapping to confirm it's valid
+        console.log("Headers:", headers);
+        console.log("Indexes:", colIndex);
+
+        // Make sure all critical columns exist
+        if (Object.values(colIndex).some(index => index === -1)) {
+            console.error("One or more columns are missing from the CSV.");
+            return;
+        }
 
         shiftData = rows.slice(1).map(row => ({
             truck: row[colIndex.unit]?.trim(),
@@ -35,7 +44,6 @@ document.addEventListener("DOMContentLoaded", function () {
             driver: row[colIndex.driver]?.trim().split(" ")[0],
             run: row[colIndex.run]?.trim().replace(/^"|"$/g, "").replace(/,/g, " - "),
             off: row[colIndex.off]?.trim().split(" ")[0],
-            destination: "", // Not used
             shift: row[colIndex.shift]?.trim(),
             date: row[colIndex.date]?.trim()
         })).filter(entry =>
@@ -43,7 +51,6 @@ document.addEventListener("DOMContentLoaded", function () {
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        // Populate date dropdown
         const uniqueDates = [...new Set(shiftData.map(entry => entry.date))].sort();
         uniqueDates.forEach(date => {
             let option = document.createElement("option");
@@ -69,11 +76,15 @@ document.addEventListener("DOMContentLoaded", function () {
         if (nightShift.length > 0) {
             scheduleContainer.appendChild(createTable("Night Shift", nightShift));
         }
+
+        if (dayShift.length === 0 && nightShift.length === 0) {
+            scheduleContainer.innerHTML = "<p>No shift data for selected date.</p>";
+        }
     }
 
     function createTable(title, data) {
-        let table = document.createElement("table");
-        let thead = document.createElement("thead");
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
         thead.innerHTML = `<tr>
             <th>Truck</th>
             <th>Departure Time</th>
@@ -87,9 +98,9 @@ document.addEventListener("DOMContentLoaded", function () {
         thead.style.zIndex = "100";
         table.appendChild(thead);
 
-        let tbody = document.createElement("tbody");
+        const tbody = document.createElement("tbody");
         data.forEach(entry => {
-            let row = document.createElement("tr");
+            const row = document.createElement("tr");
             row.innerHTML = `<td>${entry.truck}</td>
                              <td>${entry.start}</td>
                              <td>${entry.driver}</td>
@@ -97,9 +108,10 @@ document.addEventListener("DOMContentLoaded", function () {
                              <td>${entry.off}</td>`;
             tbody.appendChild(row);
         });
+
         table.appendChild(tbody);
 
-        let section = document.createElement("div");
+        const section = document.createElement("div");
         section.innerHTML = `<h3>${title}</h3>`;
         section.appendChild(table);
         return section;
@@ -109,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSchedule(dateSelect.value);
     });
 
-    // Dark Mode Handling
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
