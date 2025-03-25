@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
+    const dateSelect = document.getElementById("date-select");
     const scheduleContainer = document.getElementById("schedule-container");
     const darkModeToggle = document.getElementById("dark-mode-toggle");
 
@@ -38,32 +39,58 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        shiftData = rows.slice(1).map(row => ({
-            truck: row[colIndex.unit]?.trim(),
-            start: row[colIndex.start]?.trim(),
-            driver: row[colIndex.driver]?.trim(),
-            run: row[colIndex.run]?.trim(),
-            off: row[colIndex.off]?.trim(),
-            shift: row[colIndex.shift]?.trim(),
-            date: formatToNZDate(row[colIndex.date]?.trim())
-        })).filter(entry =>
+        shiftData = rows.slice(1).map(row => {
+            const rawDate = row[colIndex.date]?.trim();
+            return {
+                truck: row[colIndex.unit]?.trim(),
+                start: row[colIndex.start]?.trim(),
+                driver: row[colIndex.driver]?.trim(),
+                run: row[colIndex.run]?.trim(),
+                off: row[colIndex.off]?.trim(),
+                shift: row[colIndex.shift]?.trim(),
+                date: formatToNZDate(rawDate),
+                rawDate: new Date(rawDate) // used for sorting
+            };
+        }).filter(entry =>
             entry.driver && entry.driver !== "0" &&
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        console.log("📋 Total valid shift entries:", shiftData.length);
-        if (shiftData.length > 0) {
-            console.log("🧪 First entry:", shiftData[0]);
+        // Sort shift data by rawDate
+        shiftData.sort((a, b) => a.rawDate - b.rawDate);
+
+        const uniqueDates = [...new Set(shiftData.map(entry => entry.date))];
+        uniqueDates.forEach(date => {
+            let option = document.createElement("option");
+            option.value = date;
+            option.textContent = date;
+            dateSelect.appendChild(option);
+        });
+
+        if (uniqueDates.length > 0) {
+            updateSchedule(uniqueDates[0]); // Default to first date
         }
 
-        const dayShift = shiftData.filter(entry => entry.shift === "Day");
-        const nightShift = shiftData.filter(entry => entry.shift === "Night");
+        dateSelect.addEventListener("change", () => {
+            updateSchedule(dateSelect.value);
+        });
+    }
+
+    function updateSchedule(selectedDate) {
+        scheduleContainer.innerHTML = "";
+
+        const dayShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Day");
+        const nightShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Night");
 
         if (dayShift.length > 0) {
             scheduleContainer.appendChild(createTable("Day Shift", dayShift));
         }
         if (nightShift.length > 0) {
             scheduleContainer.appendChild(createTable("Night Shift", nightShift));
+        }
+
+        if (dayShift.length === 0 && nightShift.length === 0) {
+            scheduleContainer.innerHTML = "<p>No shift data for selected date.</p>";
         }
     }
 
@@ -75,7 +102,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!dateString) return "";
         const parts = dateString.includes("-")
             ? dateString.split("-") // e.g. 2025-03-25
-            : dateString.split("/"); // e.g. 3/25/2025 (US-style)
+            : dateString.split("/"); // e.g. 3/25/2025
 
         let day, month, year;
         if (parts.length === 3) {
@@ -94,7 +121,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const table = document.createElement("table");
         const thead = document.createElement("thead");
         thead.innerHTML = `<tr>
-            <th>Date</th>
             <th>Truck</th>
             <th>Start</th>
             <th>Driver</th>
@@ -110,8 +136,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const tbody = document.createElement("tbody");
         data.forEach(entry => {
             const row = document.createElement("tr");
-            row.innerHTML = `<td>${showBlankIfZero(entry.date)}</td>
-                             <td>${showBlankIfZero(entry.truck)}</td>
+            row.innerHTML = `<td>${showBlankIfZero(entry.truck)}</td>
                              <td>${showBlankIfZero(entry.start)}</td>
                              <td>${showBlankIfZero(entry.driver)}</td>
                              <td>${showBlankIfZero(entry.run)}</td>
@@ -127,7 +152,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return section;
     }
 
-    // Dark mode toggle
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
