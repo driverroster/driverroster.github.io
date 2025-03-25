@@ -37,9 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         shiftData = rows.slice(1).map(row => {
-            const rawDateStr = row[colIndex.date]?.trim();
-            const isoDate = normalizeToISODate(rawDateStr); // Internal date format
-
+            const rawDate = row[colIndex.date]?.trim();
             return {
                 truck: row[colIndex.unit]?.trim(),
                 start: row[colIndex.start]?.trim(),
@@ -47,26 +45,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 run: row[colIndex.run]?.trim(),
                 off: row[colIndex.off]?.trim(),
                 shift: row[colIndex.shift]?.trim(),
-                rawDate: isoDate, // For internal comparison (YYYY-MM-DD)
-                displayDate: formatToNZDate(isoDate) // For dropdown display
+                rawDate: rawDate,
+                displayDate: formatDateNZ(rawDate)
             };
         }).filter(entry =>
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        shiftData.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
+        const uniqueDates = [...new Set(shiftData.map(entry => entry.rawDate))];
 
-        const uniqueRawDates = [...new Set(shiftData.map(entry => entry.rawDate))];
-
-        uniqueRawDates.forEach(isoDate => {
+        uniqueDates.forEach(date => {
             const option = document.createElement("option");
-            option.value = isoDate;
-            option.textContent = formatToNZDate(isoDate);
+            option.value = date;
+            option.textContent = formatDateNZ(date);
             dateSelect.appendChild(option);
         });
 
-        if (uniqueRawDates.length > 0) {
-            updateSchedule(uniqueRawDates[0]);
+        if (uniqueDates.length > 0) {
+            updateSchedule(uniqueDates[0]);
         }
 
         dateSelect.addEventListener("change", () => {
@@ -74,17 +70,17 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function updateSchedule(selectedRawDate) {
+    function updateSchedule(selectedDate) {
         scheduleContainer.innerHTML = "";
 
-        const dayShift = shiftData.filter(entry => entry.rawDate === selectedRawDate && entry.shift === "Day");
-        const nightShift = shiftData.filter(entry => entry.rawDate === selectedRawDate && entry.shift === "Night");
+        const dayShift = shiftData.filter(entry => entry.rawDate === selectedDate && entry.shift === "Day");
+        const nightShift = shiftData.filter(entry => entry.rawDate === selectedDate && entry.shift === "Night");
 
         if (dayShift.length > 0) {
-            scheduleContainer.appendChild(createTable("Day Shift", dayShift));
+            scheduleContainer.appendChild(createTable("Day Shift", dayShift, selectedDate));
         }
         if (nightShift.length > 0) {
-            scheduleContainer.appendChild(createTable("Night Shift", nightShift));
+            scheduleContainer.appendChild(createTable("Night Shift", nightShift, selectedDate));
         }
 
         if (dayShift.length === 0 && nightShift.length === 0) {
@@ -92,52 +88,26 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-	function normalizeToISODate(input) {
-	    if (!input) return "";
-	
-	    const parts = input.includes("-") ? input.split("-") : input.split("/");
-	
-	    if (parts.length !== 3) return "";
-	
-	    let day, month, year;
-	
-	    if (input.includes("-")) {
-	        // Assume YYYY-MM-DD
-	        [year, month, day] = parts;
-	    } else {
-	        // Try MM/DD/YYYY vs DD/MM/YYYY by checking year part
-	        if (parseInt(parts[2]) > 31) {
-	            [month, day, year] = parts;
-	        } else {
-	            [day, month, year] = parts;
-	        }
-	    }
-	
-	    if (!day || !month || !year) return "";
-	
-	    // Check if valid
-	    const iso = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-	    const testDate = new Date(iso);
-	    if (isNaN(testDate)) return "";
-	
-	    return iso;
-	}
+    function formatDateNZ(input) {
+        if (!input || input.includes("undefined")) return "";
+        const parts = input.includes("-") ? input.split("-") : input.split("/");
+        if (parts.length !== 3) return input;
 
+        let day, month, year;
+        if (input.includes("-")) {
+            [year, month, day] = parts;
+        } else {
+            [month, day, year] = parts;
+        }
 
-    function formatToNZDate(isoDate) {
-        const date = new Date(isoDate);
-        if (isNaN(date)) return "";
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
+        return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
     }
 
     function showBlankIfZero(value) {
         return value === "0" ? "" : value;
     }
 
-    function createTable(title, data) {
+    function createTable(title, data, rawDate) {
         data.sort((a, b) => {
             const truckA = parseInt(a.truck) || 0;
             const truckB = parseInt(b.truck) || 0;
@@ -173,7 +143,7 @@ document.addEventListener("DOMContentLoaded", function () {
         table.appendChild(tbody);
 
         const section = document.createElement("div");
-        section.innerHTML = `<h3>${title} (${formatToNZDate(data[0].rawDate)})</h3>`;
+        section.innerHTML = `<h3>${title} (${formatDateNZ(rawDate)})</h3>`;
         section.appendChild(table);
         return section;
     }
