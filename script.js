@@ -12,18 +12,36 @@ document.addEventListener("DOMContentLoaded", function () {
         .catch(error => console.error("Failed to load CSV:", error));
 
     function processCSV(csvText) {
-        // Handle quoted fields and split properly
-        const rows = csvText.trim().split("\n").map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+        const rows = csvText.trim().split("\n").map(row =>
+            row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
+        );
+
+        const headers = rows[0].map(h => h.trim());
+
+        const colIndex = {
+            date: headers.indexOf("Date"),
+            unit: headers.indexOf("Unit"),
+            driver: headers.indexOf("Driver Name"),
+            run: headers.indexOf("Run"),
+            off: headers.indexOf("Driver (on days off)"),
+            shift: headers.indexOf("Shift"), // optional: if you want to categorize Day/Night
+            destination: headers.indexOf("Destination"),
+            start: headers.indexOf("Start Time")
+        };
 
         shiftData = rows.slice(1).map(row => ({
-            truck: row[0].trim(),
-            start: row[1].trim(),
-            driver: row[2].trim().split(" ")[0], // Extract only the first name
-            run: row[3].trim().replace(/^"|"$/g, "").replace(/,/g, " - "), // Remove quotes and replace commas with dashes
-            off: row[4].trim().split(" ")[0], // Extract only the first name
-            shift: row[5].trim(),
-            date: row[6].trim()
-        }));
+            truck: row[colIndex.unit]?.trim(),
+            start: row[colIndex.start]?.trim(),
+            driver: row[colIndex.driver]?.trim().split(" ")[0],
+            run: row[colIndex.run]?.trim().replace(/^"|"$/g, "").replace(/,/g, " - "),
+            off: row[colIndex.off]?.trim().split(" ")[0],
+            destination: row[colIndex.destination]?.trim(),
+            shift: row[colIndex.shift]?.trim(),
+            date: row[colIndex.date]?.trim()
+        })).filter(entry =>
+            entry.driver && entry.driver !== "0" &&
+            Object.values(entry).some(val => val && val !== "0")
+        );
 
         // Populate date dropdown
         const uniqueDates = [...new Set(shiftData.map(entry => entry.date))].sort();
@@ -35,7 +53,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         if (uniqueDates.length > 0) {
-            updateSchedule(uniqueDates[0]); // Default to first date
+            updateSchedule(uniqueDates[0]);
         }
     }
 
@@ -58,10 +76,11 @@ document.addEventListener("DOMContentLoaded", function () {
         let thead = document.createElement("thead");
         thead.innerHTML = `<tr>
             <th>Truck</th>
-            <th>Start</th>
+            <th>Departure Time</th>
             <th>Driver</th>
             <th>Run</th>
             <th>Off</th>
+            <th>Destination</th>
         </tr>`;
         thead.style.position = "sticky";
         thead.style.top = "0";
@@ -76,7 +95,8 @@ document.addEventListener("DOMContentLoaded", function () {
                              <td>${entry.start}</td>
                              <td>${entry.driver}</td>
                              <td>${entry.run}</td>
-                             <td>${entry.off}</td>`;
+                             <td>${entry.off}</td>
+                             <td>${entry.destination}</td>`;
             tbody.appendChild(row);
         });
         table.appendChild(tbody);
@@ -91,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
         updateSchedule(dateSelect.value);
     });
 
-    // Dark Mode Handling (Manual Toggle Only)
+    // Dark Mode Handling
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
