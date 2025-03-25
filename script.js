@@ -5,17 +5,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let shiftData = [];
 
-    console.log("📦 Fetching CSV file: shifts.csv...");
     fetch("shifts.csv")
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             return response.text();
         })
         .then(csvText => {
-            console.log("✅ CSV loaded successfully.");
             processCSV(csvText);
         })
-        .catch(error => console.error("❌ Failed to load CSV:", error));
+        .catch(error => console.error("Failed to load CSV:", error));
 
     function processCSV(csvText) {
         const rows = csvText.trim().split("\n").map(row =>
@@ -34,12 +32,14 @@ document.addEventListener("DOMContentLoaded", function () {
         };
 
         if (Object.values(colIndex).some(index => index === -1)) {
-            console.error("❗ One or more required columns are missing.");
+            console.error("One or more required columns are missing.");
             return;
         }
 
         shiftData = rows.slice(1).map(row => {
-            const rawDate = row[colIndex.date]?.trim();
+            const rawDateStr = row[colIndex.date]?.trim();
+            const isoDate = normalizeToISODate(rawDateStr); // Internal date format
+
             return {
                 truck: row[colIndex.unit]?.trim(),
                 start: row[colIndex.start]?.trim(),
@@ -47,26 +47,26 @@ document.addEventListener("DOMContentLoaded", function () {
                 run: row[colIndex.run]?.trim(),
                 off: row[colIndex.off]?.trim(),
                 shift: row[colIndex.shift]?.trim(),
-                date: formatToNZDate(rawDate),
-                rawDate: new Date(rawDate)
+                rawDate: isoDate, // For internal comparison (YYYY-MM-DD)
+                displayDate: formatToNZDate(isoDate) // For dropdown display
             };
         }).filter(entry =>
-            // Show any row with at least one meaningful (non-zero/non-empty) value
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        shiftData.sort((a, b) => a.rawDate - b.rawDate);
+        shiftData.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
 
-        const uniqueDates = [...new Set(shiftData.map(entry => entry.date))];
-        uniqueDates.forEach(date => {
+        const uniqueRawDates = [...new Set(shiftData.map(entry => entry.rawDate))];
+
+        uniqueRawDates.forEach(isoDate => {
             const option = document.createElement("option");
-            option.value = date;
-            option.textContent = date;
+            option.value = isoDate;
+            option.textContent = formatToNZDate(isoDate);
             dateSelect.appendChild(option);
         });
 
-        if (uniqueDates.length > 0) {
-            updateSchedule(uniqueDates[0]);
+        if (uniqueRawDates.length > 0) {
+            updateSchedule(uniqueRawDates[0]);
         }
 
         dateSelect.addEventListener("change", () => {
@@ -74,11 +74,11 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function updateSchedule(selectedDate) {
+    function updateSchedule(selectedRawDate) {
         scheduleContainer.innerHTML = "";
 
-        const dayShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Day");
-        const nightShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Night");
+        const dayShift = shiftData.filter(entry => entry.rawDate === selectedRawDate && entry.shift === "Day");
+        const nightShift = shiftData.filter(entry => entry.rawDate === selectedRawDate && entry.shift === "Night");
 
         if (dayShift.length > 0) {
             scheduleContainer.appendChild(createTable("Day Shift", dayShift));
@@ -92,27 +92,37 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function showBlankIfZero(value) {
-        return value === "0" ? "" : value;
-    }
-
-    function formatToNZDate(dateString) {
-        if (!dateString) return "";
-        const parts = dateString.includes("-")
-            ? dateString.split("-")
-            : dateString.split("/");
+    function normalizeToISODate(input) {
+        if (!input) return "";
+        const parts = input.includes("-") ? input.split("-") : input.split("/");
 
         let day, month, year;
-        if (parts.length === 3) {
-            if (dateString.includes("-")) {
-                [year, month, day] = parts;
-            } else {
+        if (parts.length !== 3) return "";
+
+        if (input.includes("-")) {
+            [year, month, day] = parts;
+        } else {
+            if (parseInt(parts[2]) > 31) {
                 [month, day, year] = parts;
+            } else {
+                [day, month, year] = parts;
             }
-            return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
         }
 
-        return dateString;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    function formatToNZDate(isoDate) {
+        const date = new Date(isoDate);
+        if (isNaN(date)) return "";
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+
+    function showBlankIfZero(value) {
+        return value === "0" ? "" : value;
     }
 
     function createTable(title, data) {
@@ -151,7 +161,7 @@ document.addEventListener("DOMContentLoaded", function () {
         table.appendChild(tbody);
 
         const section = document.createElement("div");
-        section.innerHTML = `<h3>${title}</h3>`;
+        section.innerHTML = `<h3>${title} (${formatToNZDate(data[0].rawDate)})</h3>`;
         section.appendChild(table);
         return section;
     }
