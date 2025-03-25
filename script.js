@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
             run: row[colIndex.run]?.trim(),
             off: row[colIndex.off]?.trim(),
             shift: row[colIndex.shift]?.trim(),
-            date: row[colIndex.date]?.trim()
+            date: formatToNZDate(row[colIndex.date]?.trim())
         })).filter(entry =>
             entry.driver && entry.driver !== "0" &&
             Object.values(entry).some(val => val && val !== "0")
@@ -69,6 +69,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function showBlankIfZero(value) {
         return value === "0" ? "" : value;
+    }
+
+    function formatToNZDate(dateString) {
+        if (!dateString) return "";
+        const parts = dateString.includes("-")
+            ? dateString.split("-") // e.g. 2025-03-25
+            : dateString.split("/"); // e.g. 3/25/2025 (US-style)
+
+        let day, month, year;
+        if (parts.length === 3) {
+            if (dateString.includes("-")) {
+                [year, month, day] = parts;
+            } else {
+                [month, day, year] = parts;
+            }
+            return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+        }
+
+        return dateString; // fallback
     }
 
     function createTable(title, data) {
