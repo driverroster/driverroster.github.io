@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const thead = document.createElement("thead");
         thead.innerHTML = `<tr>
             <th>Truck</th>
-            <th>Departure Time</th>
+            <th>Start</th>
             <th>Driver</th>
             <th>Run</th>
             <th>Off</th>
