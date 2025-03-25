@@ -20,13 +20,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const colIndex = {
             date: headers.indexOf("Date"),
-            unit: headers.indexOf("Unit"),
-            driver: headers.indexOf("Driver Name"),
+            unit: headers.indexOf("Truck"),
+            driver: headers.indexOf("Driver "), // matches your CSV with trailing space
             run: headers.indexOf("Run"),
-            off: headers.indexOf("Driver (on days off)"),
-            shift: headers.indexOf("Shift"), // optional: if you want to categorize Day/Night
-            destination: headers.indexOf("Destination"),
-            start: headers.indexOf("Start Time")
+            off: headers.indexOf("Off"),
+            shift: headers.indexOf("Shift"),
+            destination: -1, // Not present in this CSV
+            start: headers.indexOf("Start")
         };
 
         shiftData = rows.slice(1).map(row => ({
@@ -35,7 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
             driver: row[colIndex.driver]?.trim().split(" ")[0],
             run: row[colIndex.run]?.trim().replace(/^"|"$/g, "").replace(/,/g, " - "),
             off: row[colIndex.off]?.trim().split(" ")[0],
-            destination: row[colIndex.destination]?.trim(),
+            destination: "", // Not used
             shift: row[colIndex.shift]?.trim(),
             date: row[colIndex.date]?.trim()
         })).filter(entry =>
@@ -60,8 +60,8 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateSchedule(selectedDate) {
         scheduleContainer.innerHTML = "";
 
-        let dayShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Day");
-        let nightShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Night");
+        const dayShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Day");
+        const nightShift = shiftData.filter(entry => entry.date === selectedDate && entry.shift === "Night");
 
         if (dayShift.length > 0) {
             scheduleContainer.appendChild(createTable("Day Shift", dayShift));
@@ -80,7 +80,6 @@ document.addEventListener("DOMContentLoaded", function () {
             <th>Driver</th>
             <th>Run</th>
             <th>Off</th>
-            <th>Destination</th>
         </tr>`;
         thead.style.position = "sticky";
         thead.style.top = "0";
@@ -95,8 +94,7 @@ document.addEventListener("DOMContentLoaded", function () {
                              <td>${entry.start}</td>
                              <td>${entry.driver}</td>
                              <td>${entry.run}</td>
-                             <td>${entry.off}</td>
-                             <td>${entry.destination}</td>`;
+                             <td>${entry.off}</td>`;
             tbody.appendChild(row);
         });
         table.appendChild(tbody);
