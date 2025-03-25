@@ -13,7 +13,6 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .then(csvText => {
             console.log("✅ CSV loaded successfully.");
-            console.log("📄 CSV preview:", csvText.split("\n").slice(0, 5).join("\n"));
             processCSV(csvText);
         })
         .catch(error => console.error("❌ Failed to load CSV:", error));
@@ -52,14 +51,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 rawDate: new Date(rawDate) // for sorting
             };
         }).filter(entry =>
-            entry.driver && entry.driver !== "0" &&
+            // Keep all rows with at least one meaningful value
             Object.values(entry).some(val => val && val !== "0")
         );
 
-        // Sort all shift data by date
+        // Sort by date
         shiftData.sort((a, b) => a.rawDate - b.rawDate);
 
-        // Populate the date dropdown
+        // Populate the dropdown
         const uniqueDates = [...new Set(shiftData.map(entry => entry.date))];
         uniqueDates.forEach(date => {
             const option = document.createElement("option");
@@ -69,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         if (uniqueDates.length > 0) {
-            updateSchedule(uniqueDates[0]); // default to first date
+            updateSchedule(uniqueDates[0]); // Show first date by default
         }
 
         dateSelect.addEventListener("change", () => {
@@ -119,7 +118,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function createTable(title, data) {
-        // Sort by truck number ascending
+        // Sort by truck number
         data.sort((a, b) => {
             const truckA = parseInt(a.truck) || 0;
             const truckB = parseInt(b.truck) || 0;
@@ -160,7 +159,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return section;
     }
 
-    // Dark Mode
+    // Dark Mode toggle
     function applyTheme() {
         const isDarkMode = localStorage.getItem("dark-mode") === "true";
         document.body.classList.toggle("dark-mode", isDarkMode);
